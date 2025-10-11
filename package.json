@@ -1,0 +1,11 @@
+{
+  "name": "otojsc-vscode",
+  "version": "0.1.0",
+  "description": "Visual Studio Code environment for sending JavaScript code to otojsd",
+  "main": "bin/otojsc.js",
+  "author": "Haruka Kataoka",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "typescript": "^5.0.0"
+  }
+}
