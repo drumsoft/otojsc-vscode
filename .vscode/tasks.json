@@ -20,8 +20,8 @@
             "args": [
                 "${workspaceFolder}/bin/otojsc.js",
                 "--selection",
-                "${relativeFile}",
-                "${selectedText}"
+                "${relativeFile}:${lineNumber}:${columnNumber}",
+                "'${selectedText}'"
             ],
             "problemMatcher": []
         }

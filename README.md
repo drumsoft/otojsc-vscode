@@ -47,8 +47,8 @@ node bin/otojsc.js code/test.ts
 # Send code string directly
 node bin/otojsc.js "console.log('Hello World')"
 
-# Send selected text (with file name specified)
-node bin/otojsc.js --selection code/test.ts "console.log('Selected')"
+# Send selection from TypeScript file (To send the corresponding part from the compiled file, you must specify the file and the end of the selection in the format ‘filename:line number:column number’)
+node bin/otojsc.js --selection 'code/test.ts:5:24' "console.log('Selected')"
 ```
 
 ## Configuration

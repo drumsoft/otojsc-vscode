@@ -6,6 +6,7 @@
   "author": "Haruka Kataoka",
   "license": "GPL-3.0",
   "dependencies": {
+    "source-map": "^0.7.6",
     "typescript": "^5.0.0"
   }
 }

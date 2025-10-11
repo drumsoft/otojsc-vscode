@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { execSync } = require('child_process');
+const { SourceMapConsumer } = require('source-map');
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -118,6 +119,102 @@ function compileTypeScript(filePath) {
 }
 
 /**
+ * Parse selection argument in format: filepath:line:column
+ * Returns {filePath, line, column}
+ */
+function parseSelectionArgument(arg) {
+  const match = arg.match(/^(.+):(\d+):(\d+)$/);
+  if (!match) {
+    throw new Error(`Invalid selection argument format: ${arg}. Expected: filepath:line:column`);
+  }
+
+  return {
+    filePath: match[1],
+    line: parseInt(match[2], 10),
+    column: parseInt(match[3], 10)
+  };
+}
+
+/**
+ * Find compiled JavaScript code corresponding to selected TypeScript code using source maps
+ * @param {string} sourceFilePath - Original TypeScript file path
+ * @param {string} selectedText - Selected TypeScript code
+ * @param {number} endLine - Line number at end of selection (1-based)
+ * @param {number} endColumn - Column number at end of selection (0-based)
+ * @returns {string} Corresponding compiled JavaScript code
+ */
+async function findCompiledCode(sourceFilePath, selectedText, endLine, endColumn) {
+  const fileName = path.basename(sourceFilePath, '.ts');
+  const jsFilePath = path.join(process.cwd(), 'dist', `${fileName}.js`);
+  const mapFilePath = `${jsFilePath}.map`;
+
+  if (!fs.existsSync(mapFilePath)) {
+    throw new Error(`Source map not found: ${mapFilePath}. Please ensure sourceMap is enabled in tsconfig.json`);
+  }
+
+  // Read source map
+  const mapData = JSON.parse(fs.readFileSync(mapFilePath, 'utf8'));
+  const consumer = await new SourceMapConsumer(mapData);
+
+  try {
+    // Read the original source file to find start position
+    const sourceCode = fs.readFileSync(sourceFilePath, 'utf8');
+    const sourceLines = sourceCode.split('\n');
+
+    // Calculate start position of selection by searching backwards from end position
+    const lines = selectedText.split('\n');
+    const startLine = endLine - lines.length + 1;
+
+    // Find start column by locating the first line of selected text in the source
+    const firstSelectedLine = lines[0];
+    const sourceLineText = sourceLines[startLine - 1]; // Convert to 0-based index
+    const startColumn = sourceLineText.indexOf(firstSelectedLine);
+
+    // Find generated positions for start and end of selection
+    // Source path in source map is relative: ../code/filename.ts
+    const sourceInMap = `../code/${path.basename(sourceFilePath)}`;
+
+    const startPos = consumer.generatedPositionFor({
+      source: sourceInMap,
+      line: startLine,
+      column: Math.max(0, startColumn)
+    });
+
+    const endPos = consumer.generatedPositionFor({
+      source: sourceInMap,
+      line: endLine,
+      column: endColumn
+    });
+
+    if (!startPos.line || !endPos.line) {
+      console.error('Warning: Could not map selection to compiled code. Sending original TypeScript code.');
+      return selectedText;
+    }
+
+    // Read compiled JavaScript file
+    const jsCode = fs.readFileSync(jsFilePath, 'utf8');
+    const jsLines = jsCode.split('\n');
+
+    // Extract corresponding lines from compiled code
+    // Note: Source maps provide line-level granularity, but column positions
+    // may not be precise due to compilation transformations. For safety,
+    // we extract full lines from the compiled code.
+
+    const result = [];
+    for (let i = startPos.line; i <= endPos.line; i++) {
+      const line = jsLines[i - 1]; // Convert to 0-based index
+      if (line !== undefined) {
+        result.push(line);
+      }
+    }
+
+    return result.join('\n');
+  } finally {
+    consumer.destroy();
+  }
+}
+
+/**
  * Prepare code (from file or direct code string)
  * Returns [originalCode, compiledCode|undefined]
  * compiledCode is undefined if no compilation is needed.
@@ -193,7 +290,7 @@ async function main() {
     console.error('Usage: otojsc <file|code>');
     console.error('  otojsc <file>: Send entire file');
     console.error('  otojsc <code>: Send code string');
-    console.error('  otojsc --selection <file> <code>: Send selected code (with file context for TS)');
+    console.error('  otojsc --selection <file:line:column> <code>: Send selected code (compiles TS using source maps)');
     process.exit(1);
   }
 
@@ -209,22 +306,33 @@ async function main() {
 
   // Check for --selection option
   if (args[0] === '--selection' && args.length >= 3) {
-    const filePath = args[1];
-    const selectedText = args.slice(2).join(' ');
+    // Parse filepath:line:column format
+    const { filePath, line, column } = parseSelectionArgument(args[1]);
+
+    // Remove quotes from selected text if present
+    let selectedText = args.slice(2).join(' ');
+    if (selectedText.startsWith("'") && selectedText.endsWith("'")) {
+      selectedText = selectedText.slice(1, -1);
+    }
+
+    code = selectedText;
 
     // Check file extension
     const ext = path.extname(filePath);
 
     if (ext === '.ts') {
-      // For TypeScript files
-      // Current implementation sends selected code as-is
-      // A more advanced implementation could compile the entire file and extract the corresponding part
-      // However, extracting the selected portion is complex, so we send the selected text as-is
-      console.error('Warning: Sending selected TypeScript code as-is (not compiled)');
-      code = selectedText;
-    } else {
-      // For JavaScript or other files, send selected text as-is
-      code = selectedText;
+      // For TypeScript files, compile and map selection to compiled code
+      try {
+        // First, compile the entire project
+        compileTypeScript(filePath);
+
+        // Then find the compiled code corresponding to the selection
+        compiledCode = await findCompiledCode(filePath, selectedText, line, column);
+      } catch (error) {
+        console.error(`Error processing TypeScript selection: ${error.message}`);
+        console.error('Sending original TypeScript code as fallback.');
+        compiledCode = undefined;
+      }
     }
   } else {
     // Normal mode (entire file or code string)
