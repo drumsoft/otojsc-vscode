@@ -1,12 +1,12 @@
 {
-    "otojsd": {
-        "host": "localhost",
-        "port": 14609,
-        "otojsd_port-file": ""
-    },
-    "code-splash": {
-        "enabled": false,
-        "host": "localhost",
-        "port": 8080
-    }
+  "otojsd": {
+    "host": "localhost",
+    "port": 14609,
+    "otojsd_port-file": ""
+  },
+  "code-splash": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 8080
+  }
 }

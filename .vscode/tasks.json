@@ -1,40 +1,37 @@
 {
-    "tasks": [
-        {
-            "type": "shell",
-            "label": "Post file to the server",
-            "command": "node",
-            "args": [
-                "${workspaceFolder}/bin/otojsc.js",
-                "${relativeFile}"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "silent",
-                "showReuseMessage": false,
-                "close": true
-            }
-        },
-        {
-            "type": "shell",
-            "label": "Post selection to the server",
-            "command": "node",
-            "args": [
-                "${workspaceFolder}/bin/otojsc.js",
-                "--selection",
-                "${relativeFile}:${lineNumber}:${columnNumber}",
-                "'${selectedText}'"
-            ],
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "silent",
-                "showReuseMessage": false,
-                "close": true
-            }
-        }
-    ],
-    "version": "2.0.0"
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "Post file to the server",
+      "command": "node",
+      "args": ["${workspaceFolder}/bin/otojsc.js", "${relativeFile}"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "showReuseMessage": false,
+        "close": true
+      }
+    },
+    {
+      "type": "shell",
+      "label": "Post selection to the server",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/bin/otojsc.js",
+        "--selection",
+        "${relativeFile}:${lineNumber}:${columnNumber}",
+        "'${selectedText}'"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "showReuseMessage": false,
+        "close": true
+      }
+    }
+  ],
+  "version": "2.0.0"
 }
