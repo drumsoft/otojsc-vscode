@@ -15,7 +15,7 @@ var Otojs = {
      */
     sin: () => {
       let phase = 0;
-      return (frequency: number) => {
+      return (frequency: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         return Math.sin(Otojs.PI2 * phase);
       };
@@ -26,7 +26,7 @@ var Otojs = {
      */
     sqr: () => {
       let phase = 0;
-      return (frequency: number) => {
+      return (frequency: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         return phase < 0.5 ? 1 : -1;
       };
@@ -38,7 +38,7 @@ var Otojs = {
     sqr_pw: () => {
       let phase = 0;
       // pw: pulse width (0.0 - 1.0)
-      return (frequency: number, pw: number) => {
+      return (frequency: number, pw: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         return phase < pw ? 1 : -1;
       };
@@ -49,7 +49,7 @@ var Otojs = {
      */
     tri: () => {
       let phase = 0;
-      return (frequency: number) => {
+      return (frequency: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         return phase < 0.25
           ? 4 * phase
@@ -64,7 +64,7 @@ var Otojs = {
      */
     tri_saw: () => {
       let phase = 0;
-      return (frequency: number, morph: number) => {
+      return (frequency: number, morph: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         if (morph == 0) {
           return -2 * (phase - 0.5);
@@ -84,7 +84,7 @@ var Otojs = {
      */
     saw: () => {
       let phase = 0;
-      return (frequency: number) => {
+      return (frequency: number): number => {
         phase = (phase + frequency * Otojs.dtime) % 1;
         return phase < 0.5 ? -2 * phase : -2 * phase + 2;
       };
@@ -94,7 +94,7 @@ var Otojs = {
      * @returns white noise oscillator function.
      */
     noise: () => {
-      return () => {
+      return (): number => {
         return Math.random() * 2 - 1;
       };
     },
@@ -103,7 +103,7 @@ var Otojs = {
      * @returns silent oscillator function.
      */
     mute: () => {
-      return () => {
+      return (): number => {
         return 0;
       };
     },
@@ -118,7 +118,7 @@ var Otojs = {
     lpf_sv: () => {
       let buf0 = 0;
       let buf1 = 0;
-      return (input: number, frequency: number, resonance: number) => {
+      return (input: number, frequency: number, resonance: number): number => {
         let f = 2 * Math.sin(Math.PI * Math.min(frequency / sample_rate, 0.25));
         buf0 += f * (input - buf0 + resonance * (buf0 - buf1));
         buf1 += f * (buf0 - buf1);
@@ -137,7 +137,7 @@ var Otojs = {
       let y1 = 0;
       let y2 = 0;
       let freq_unit = Otojs.PI2 / sample_rate;
-      return (input: number, frequency: number, q: number) => {
+      return (input: number, frequency: number, q: number): number => {
         let w0 = frequency * freq_unit;
         let alpha = Math.sin(w0) / (2 * q);
         let cs = Math.cos(w0);
@@ -178,7 +178,7 @@ var Otojs = {
       let s_attack = (1 - start_level) / attack;
       let s_decay = -(1 - sustain) / decay;
       let s_release = -start_level / release;
-      return (trigger: boolean) => {
+      return (trigger: boolean): number => {
         if (trigger !== is_on) {
           // note on/off state changed
           is_on = trigger;
@@ -214,7 +214,7 @@ var Otojs = {
     portamento: () => {
       let cv = 0;
       let isOn = false;
-      return (frequency: number, trigger: boolean, time: number) => {
+      return (frequency: number, trigger: boolean, time: number): number => {
         const tv = Math.log2(frequency / 261.626);
         const triggered = trigger && !isOn;
         isOn = trigger;
@@ -236,7 +236,7 @@ var Otojs = {
       let cf = 0;
       let isOn = false;
       let decay = Math.exp(-Otojs.dtime / time);
-      return (frequency: number, trigger: boolean) => {
+      return (frequency: number, trigger: boolean): number => {
         if ((trigger && !isOn) || time === 0) {
           cf = frequency;
         } else {
@@ -268,7 +268,7 @@ var Otojs = {
         let decay = Math.pow(1 / density, delay_time / (length + start));
         echoes[i] = [delay_samples, i % 2 == 0 ? decay : -decay];
       }
-      return (input: number) => {
+      return (input: number): number => {
         let sum = 0;
         for (let echo of echoes) {
           sum += echo[1] * buffer.get(echo[0]);
@@ -300,7 +300,7 @@ var Otojs = {
         this.buffer[this.cur] = value;
         this.cur = (this.cur + 1) & this.max;
       }
-      get(offset: number) {
+      get(offset: number): number {
         return this.buffer[(this.cur - offset) & this.max];
       }
     },
@@ -318,7 +318,7 @@ var Otojs = {
       // set dticks (delta-ticks per frame)
       let dticks = (960 * bpm) / 60 / sample_rate;
       let current = offset;
-      return () => {
+      return (): number => {
         current += dticks;
         return current;
       };
