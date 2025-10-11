@@ -84,20 +84,28 @@ function determinePort(config) {
 }
 
 /**
+ * load tsconfig.json
+ */
+function loadTsConfig() {
+  const configPath = path.join(process.cwd(), 'tsconfig.json');
+  if (!fs.existsSync(configPath)) {
+    console.error('tsconfig.json not found in current directory.');
+    process.exit(1);
+  }
+  try {
+    const tsConfigData = fs.readFileSync(configPath, 'utf8');
+    return JSON.parse(tsConfigData);
+  } catch (error) {
+    console.error(`Error reading tsconfig.json: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+/**
  * Compile TypeScript file
  */
-function compileTypeScript(filePath) {
+function compileTypeScript() {
   const configPath = path.join(process.cwd(), 'tsconfig.json');
-  const distDir = path.join(process.cwd(), 'dist');
-
-  // Create dist directory if it doesn't exist
-  if (!fs.existsSync(distDir)) {
-    fs.mkdirSync(distDir, { recursive: true });
-  }
-
-  const fileName = path.basename(filePath, '.ts');
-  const outputPath = path.join(distDir, `${fileName}.js`);
-
   try {
     // Use --project option to compile with tsconfig.json settings
     // This ensures include patterns and all settings are respected
@@ -105,15 +113,9 @@ function compileTypeScript(filePath) {
       cwd: process.cwd(),
       stdio: 'inherit'
     });
-
-    if (fs.existsSync(outputPath)) {
-      return fs.readFileSync(outputPath, 'utf8');
-    } else {
-      throw new Error(`Compiled file not found at ${outputPath}`);
-    }
   } catch (error) {
     // Error details are already displayed via stderr
-    console.error(`\nTypeScript compilation failed for: ${filePath}`);
+    console.error(`\nTypeScript compilation failed for "${filePath}": ${error}`);
     process.exit(1);
   }
 }
@@ -136,16 +138,39 @@ function parseSelectionArgument(arg) {
 }
 
 /**
+ * find compiled file path.
+ * @param {object} tsConfig - tsconfig.json content
+ * @param {string} sourceFilePath - Original TypeScript file path
+ */
+function findCompiledFilePath(tsConfig, sourceFilePath) {
+  const rootDir = tsConfig.compilerOptions && tsConfig.compilerOptions.rootDir
+    ? path.resolve(process.cwd(), tsConfig.compilerOptions.rootDir)
+    : path.join(process.cwd(), 'code');
+  const outDir = tsConfig.compilerOptions && tsConfig.compilerOptions.outDir
+    ? path.resolve(process.cwd(), tsConfig.compilerOptions.outDir)
+    : path.join(process.cwd(), 'dist');
+
+  const relativePath = path.relative(rootDir, path.resolve(sourceFilePath));
+  const jsFilePath = path.join(outDir, relativePath.replace(/\.ts$/, '.js'));
+
+  if (!fs.existsSync(jsFilePath)) {
+    console.error(`Compiled file not found: ${jsFilePath}. Please ensure the TypeScript file has been compiled.`);
+    process.exit(1);
+  }
+  return jsFilePath;
+}
+
+/**
  * Find compiled JavaScript code corresponding to selected TypeScript code using source maps
+ * @param {object} tsConfig - tsconfig.json content
  * @param {string} sourceFilePath - Original TypeScript file path
  * @param {string} selectedText - Selected TypeScript code
  * @param {number} endLine - Line number at end of selection (1-based)
  * @param {number} endColumn - Column number at end of selection (0-based)
  * @returns {string} Corresponding compiled JavaScript code
  */
-async function findCompiledCode(sourceFilePath, selectedText, endLine, endColumn) {
-  const fileName = path.basename(sourceFilePath, '.ts');
-  const jsFilePath = path.join(process.cwd(), 'dist', `${fileName}.js`);
+async function findCompiledCode(tsConfig, sourceFilePath, selectedText, endLine, endColumn) {
+  const jsFilePath = findCompiledFilePath(tsConfig, sourceFilePath);
   const mapFilePath = `${jsFilePath}.map`;
 
   if (!fs.existsSync(mapFilePath)) {
@@ -171,8 +196,8 @@ async function findCompiledCode(sourceFilePath, selectedText, endLine, endColumn
     const startColumn = sourceLineText.indexOf(firstSelectedLine);
 
     // Find generated positions for start and end of selection
-    // Source path in source map is relative: ../code/filename.ts
-    const sourceInMap = `../code/${path.basename(sourceFilePath)}`;
+    // relative path from jsFilePath to sourceFilePath
+    const sourceInMap = path.relative(path.dirname(jsFilePath), sourceFilePath);
 
     const startPos = consumer.generatedPositionFor({
       source: sourceInMap,
@@ -227,8 +252,13 @@ function prepareCode(input) {
     code = fs.readFileSync(input, 'utf8');
 
     if (ext === '.ts') {
-      // Compile TypeScript file
-      return [code, compileTypeScript(input)];
+      const tsConfig = loadTsConfig();
+      // First, compile the entire project
+      compileTypeScript();
+      // Then map filepath to compiled file
+      const compiledPath = findCompiledFilePath(tsConfig, input);
+      // return compiled code
+      return [code, fs.readFileSync(compiledPath, 'utf8')];
     } else {
       // Read JavaScript file or other extensions, Send as-is
       return [code, undefined];
@@ -323,11 +353,11 @@ async function main() {
     if (ext === '.ts') {
       // For TypeScript files, compile and map selection to compiled code
       try {
+        const tsConfig = loadTsConfig();
         // First, compile the entire project
-        compileTypeScript(filePath);
-
+        compileTypeScript();
         // Then find the compiled code corresponding to the selection
-        compiledCode = await findCompiledCode(filePath, selectedText, line, column);
+        compiledCode = await findCompiledCode(tsConfig, filePath, selectedText, line, column);
       } catch (error) {
         console.error(`Error processing TypeScript selection: ${error.message}`);
         console.error('Sending original TypeScript code as fallback.');
