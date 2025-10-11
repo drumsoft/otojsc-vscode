@@ -11,7 +11,12 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "showReuseMessage": false,
+                "close": true
+            }
         },
         {
             "type": "shell",
@@ -23,7 +28,12 @@
                 "${relativeFile}:${lineNumber}:${columnNumber}",
                 "'${selectedText}'"
             ],
-            "problemMatcher": []
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "showReuseMessage": false,
+                "close": true
+            }
         }
     ],
     "version": "2.0.0"
