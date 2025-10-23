@@ -1,10 +1,12 @@
 // Otojs sinewave combination example.
 // This is TypeScript version of otojs-example.js
 
+var count = 0;
+
 // oto_render generates audio samples.
 // should return Float32Array(frames * channels).
 // To defining functions has same names across multiple files, use `var` instead of `function` for global-level function declarations.
-var oto_render = (frames: number, channels: number, input_array: Float32Array | undefined): Float32Array => {
+var oto_render = (frames: number, channels: number, input_array: Float32Array | undefined, midi_input: Array<Uint8Array> | undefined): Float32Array => {
   let output = new Float32Array(frames * channels);
   for (let f = 0; f < frames; f++) {
     // sinewave oscillator 1 (110Hz)

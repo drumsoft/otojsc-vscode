@@ -12,7 +12,7 @@ bass_mml.score(
   "Q3 L8 O3 |CDEFGABR|>C<BAGFED4| q.70 N48n50f-e# a--g++b8.r16 | o4C!~O3 B16+8^8-8.~ l16A~A~L8 GF!ED8..R32 ",
   undefined, true);
 
-var oto_render = (frames: number, channels: number, input_array: Float32Array | undefined): Float32Array => {
+var oto_render = (frames: number, channels: number, input_array: Float32Array | undefined, midi_input: Array<Uint8Array> | undefined): Float32Array => {
   let output = new Float32Array(frames * channels);
   for (let f = 0; f < frames; f++) {
     let tick = ticker();
