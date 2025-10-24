@@ -8,7 +8,7 @@ var modulation = 0;
 var key_pressing = 0;
 
 var phase = 0;
-function sine_synth(frequency: number, velocity: number, pitchbend: number, modulation: number) {
+var sine_synth = (frequency: number, velocity: number, pitchbend: number, modulation: number) => {
   const freq_bended = frequency * Math.pow(2, pitchbend * 2 / 12); // apply pich bend
   phase += 2 * Math.PI * freq_bended / sample_rate;
   let value = Math.sin(phase);

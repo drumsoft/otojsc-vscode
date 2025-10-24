@@ -10,7 +10,7 @@ var kick_eg_amp = Otojs.eg.adsr(0.0, 0.15, 0.0, 0.15);
 var kick_eg_filter = Otojs.eg.adsr(0.0, 0.01, 0.0, 0.01);
 var kick_filter = Otojs.filt.lpf_biquad();
 
-function kick(tick: number) {
+var kick = (tick: number) => {
   kick_mml.play(tick);
   let e_amp = kick_eg_amp(kick_mml.trigger);
   let e_filter = kick_eg_filter(kick_mml.trigger);
@@ -26,7 +26,7 @@ var bass_eg = Otojs.eg.adsr(0.01, 0.2, 0.5, 0.01);
 var bass_filter = Otojs.filt.lpf_biquad();
 var bass_lfo = Otojs.osc.sin();
 
-function bass(tick: number) {
+var bass = (tick: number) => {
   bass_mml.play(tick);
   let cutoff = 550 + 300 * bass_lfo(1 / 10);
   let frequency = bass_portamento(bass_mml.frequency, bass_mml.trigger);
@@ -45,7 +45,7 @@ var synth_eg = Otojs.eg.adsr(0.001, 0.4, 0.4, 0.01);
 var synth_lfo = Otojs.osc.sin();
 var synth_filter = Otojs.filt.lpf_biquad();
 
-function synth(tick: number) {
+var synth = (tick: number) => {
   let mixed = 0;
   for (let i = 0; i < synth_mml.length; i++) {
     synth_mml[i].play(tick);
@@ -57,11 +57,11 @@ function synth(tick: number) {
   return amp * mixed;
 }
 
-function calc_swing(tick: number) {
+var calc_swing = (tick: number) => {
   return 80 - 80 * Math.cos(Otojs.PI2 * tick / 480);
 }
 
-function overdrive(x: number) {
+var overdrive = (x: number) => {
   if (x >= 0) {
     return 1 - Math.exp(-x);
   } else {
